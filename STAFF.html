@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kukena SACCO - Staff & Terminal Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --dark-blue: #0a4da3;
+            --accent-green: #198754;
+            --amber-gold: #ffc107;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+        }
+
+        /* Fullscreen Staff Auth Screen Overlay */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--dark-blue) 0%, #052c65 100%);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        /* Top Bar */
+        .staff-navbar {
+            background-color: var(--dark-blue);
+            color: white;
+        }
+
+        /* Layout Structure */
+        .wrapper {
+            display: flex;
+            min-height: calc(100vh - 56px);
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #ffffff;
+            border-right: 1px solid #e9ecef;
+            flex-shrink: 0;
+        }
+
+        .sidebar .nav-link {
+            color: #495057;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 4px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #e7f1ff;
+            color: var(--primary-blue);
+        }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 24px;
+        }
+
+        /* Counter Seat Grid */
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+
+        .seat {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            background-color: #f8f9fa;
+        }
+
+        .seat:hover:not(.occupied):not(.driver) {
+            border-color: var(--primary-blue);
+            background-color: #e7f1ff;
+        }
+
+        .seat.selected {
+            background-color: var(--primary-blue) !important;
+            color: white !important;
+            border-color: var(--primary-blue) !important;
+        }
+
+        .seat.occupied {
+            background-color: #dc3545 !important;
+            color: white !important;
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+
+        .seat.driver {
+            background-color: #6c757d;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        /* Metric Cards */
+        .stat-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .printable-area {
+            display: none;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-area, .printable-area * {
+                visibility: visible;
+            }
+            .printable-area {
+                display: block;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 0. STAFF LOGIN OVERLAY (HIDDEN WHEN LOGGED IN) -->
+    <div id="login-screen">
+        <div class="card login-card border-0 p-4 bg-white">
+            <div class="text-center mb-4">
+                <div class="bg-primary text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="fa-solid fa-van-shuttle fs-3"></i>
+                </div>
+                <h4 class="fw-bold mb-1">Kukena SACCO</h4>
+                <p class="text-muted small">Staff Authentication & Terminal Access</p>
+            </div>
+
+            <div id="loginAlert" class="alert alert-danger d-none small p-2 text-center" role="alert"></div>
+
+            <form onsubmit="event.preventDefault(); handleStaffLogin();">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Select Staff Account</label>
+                    <select class="form-select" id="staffAccountSelect" required onchange="autoFillTerminal()">
+                        <option value="" disabled selected>-- Choose Staff Member --</option>
+                        <option value="STAFF-001">Mwangi K. (Counter Ticketing Agent)</option>
+                        <option value="STAFF-002">Grace Wanjiku (Terminal Controller)</option>
+                        <option value="STAFF-003">Peter Otieno (Dispatch Manager)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Assigned Terminal Station</label>
+                    <select class="form-select" id="loginTerminalSelect" required>
+                        <option value="Kerugoya Main Terminal">Kerugoya Main Terminal</option>
+                        <option value="Nairobi Tea Room">Nairobi Tea Room</option>
+                        <option value="Kutus Terminal">Kutus Terminal</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">4-Digit Security PIN</label>
+                    <input type="password" class="form-control text-center fs-4 letter-spacing" id="staffPinInput" maxlength="4" placeholder="••••" required>
+                    <div class="form-text text-center text-muted small">Demo PINs: <code>1234</code>, <code>5678</code>, or <code>0000</code></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 btn-lg fw-bold py-2 fs-6">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> Log In to Terminal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER (HIDDEN UNTIL AUTHENTICATED) -->
+    <div id="app-workspace" class="d-none">
+
+        <!-- Staff Top Header -->
+        <nav class="navbar navbar-expand-lg staff-navbar sticky-top shadow-sm">
+            <div class="container-fluid px-4">
+                <a class="navbar-brand fw-bold text-white d-flex align-items-center" href="#">
+                    <i class="fa-solid fa-van-shuttle fs-4 me-2"></i> KUKENA SACCO <span class="badge bg-warning text-dark ms-2 fs-7">Staff Portal</span>
+                </a>
+                <div class="d-flex align-items-center gap-3 ms-auto">
+                    <div class="text-end d-none d-sm-block">
+                        <small class="d-block text-white-50">Terminal Station</small>
+                        <strong class="text-white" id="terminalLocationBadge">Kerugoya Main Terminal</strong>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-user-shield me-1"></i> Agent: <span id="currentAgentBadge">Mwangi K.</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li class="px-3 py-2 bg-light border-bottom">
+                                <small class="text-muted d-block">Logged-in Role</small>
+                                <strong class="text-primary d-block" id="currentRoleBadge">Ticketing Agent</strong>
+                                <small class="text-muted" id="currentStaffIdBadge">ID: STAFF-001</small>
+                            </li>
+                            <li><a class="dropdown-item mt-1" href="#" onclick="switchTerminal('Kerugoya Main Terminal')">Switch to Kerugoya</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="switchTerminal('Nairobi Tea Room')">Switch to Nairobi</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="switchTerminal('Kutus Terminal')">Switch to Kutus</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger fw-bold" href="#" onclick="handleStaffLogout()">
+                                    <i class="fa-solid fa-right-from-bracket me-2"></i> Log Out
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- App Body Layout -->
+        <div class="wrapper">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar py-3">
+                <nav class="nav flex-column">
+                    <a class="nav-link active" id="tab-dashboard" href="#" onclick="navigateTo('dashboard')">
+                        <i class="fa-solid fa-chart-line"></i> Operations Overview
+                    </a>
+                    <a class="nav-link" id="tab-counter" href="#" onclick="navigateTo('counter')">
+                        <i class="fa-solid fa-cash-register"></i> Counter Ticketing
+                    </a>
+                    <a class="nav-link" id="tab-manifest" href="#" onclick="navigateTo('manifest')">
+                        <i class="fa-solid fa-clipboard-list"></i> Vehicle Manifests
+                    </a>
+                    <a class="nav-link" id="tab-schedules" href="#" onclick="navigateTo('schedules')">
+                        <i class="fa-solid fa-bus"></i> Departure Schedules
+                    </a>
+                    <a class="nav-link" id="tab-transactions" href="#" onclick="navigateTo('transactions')">
+                        <i class="fa-solid fa-receipt"></i> M-Pesa & Cash Logs
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Dynamic Content Workspace -->
+            <main class="content-area">
+
+                <!-- VIEW 1: OPERATIONS DASHBOARD -->
+                <section id="view-dashboard">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">Terminal Operations Overview</h4>
+                            <p class="text-muted small mb-0">Real-time status for <span class="active-terminal-text fw-bold text-primary">Kerugoya Main Terminal</span></p>
+                        </div>
+                        <button class="btn btn-primary btn-sm fw-semibold" onclick="navigateTo('counter')">
+                            <i class="fa-solid fa-plus me-1"></i> New Counter Booking
+                        </button>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card stat-card p-3 bg-white">
+                                <span class="text-muted small fw-bold">TODAY'S DEPARTURES</span>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <h3 class="fw-bold mb-0 text-primary">12</h3>
+                                    <div class="bg-light p-2 rounded-circle text-primary"><i class="fa-solid fa-van-shuttle fs-5"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card p-3 bg-white">
+                                <span class="text-muted small fw-bold">PASSENGERS BOOKED</span>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <h3 class="fw-bold mb-0 text-success">148</h3>
+                                    <div class="bg-light p-2 rounded-circle text-success"><i class="fa-solid fa-users fs-5"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card p-3 bg-white">
+                                <span class="text-muted small fw-bold">TOTAL REVENUE (KES)</span>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <h3 class="fw-bold mb-0 text-dark">74,000</h3>
+                                    <div class="bg-light p-2 rounded-circle text-dark"><i class="fa-solid fa-wallet fs-5"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card p-3 bg-white">
+                                <span class="text-muted small fw-bold">DISPATCH READY</span>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <h3 class="fw-bold mb-0 text-warning">2 Vehicles</h3>
+                                    <div class="bg-light p-2 rounded-circle text-warning"><i class="fa-solid fa-circle-check fs-5"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Departures Table -->
+                    <div class="card border-0 shadow-sm p-4 bg-white">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock text-primary me-2"></i>Upcoming Departures Today</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Vehicle Reg</th>
+                                        <th>Route</th>
+                                        <th>Booked Seats</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardDeparturesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 2: COUNTER TICKETING (WALK-IN POS) -->
+                <section id="view-counter" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold mb-0">Counter Walk-In POS Ticketing</h4>
+                        <span class="badge bg-primary fs-6 px-3 py-2" id="posRouteBadge">Kerugoya → Nairobi</span>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Schedule & Seat Selection -->
+                        <div class="col-lg-7">
+                            <div class="card border-0 shadow-sm p-4 bg-white mb-3">
+                                <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-calendar-day me-2"></i>1. Select Departure Vehicle</h6>
+                                <div class="row g-2 mb-3" id="posTripOptions"></div>
+
+                                <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-chair me-2"></i>2. Assign Seat(s)</h6>
+                                <div class="seat-grid" id="posSeatGrid"></div>
+                            </div>
+                        </div>
+
+                        <!-- Passenger Info & Payment -->
+                        <div class="col-lg-5">
+                            <div class="card border-0 shadow-sm p-4 bg-white">
+                                <h6 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-user-tag me-2"></i>3. Ticket Details & Payment</h6>
+                                <form onsubmit="event.preventDefault(); processCounterSale();">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Passenger Name</label>
+                                        <input type="text" class="form-control" id="posPassengerName" placeholder="e.g. Walk-in Customer" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Passenger Phone Number</label>
+                                        <input type="tel" class="form-control" id="posPassengerPhone" placeholder="07XXXXXXXX" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Payment Method</label>
+                                        <select class="form-select" id="posPaymentMethod" onchange="togglePaymentFields()">
+                                            <option value="Cash" selected>Cash Payment (Counter)</option>
+                                            <option value="MPesa-STK">M-Pesa STK Push</option>
+                                            <option value="MPesa-Code">Manual M-Pesa Code Entry</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3 d-none" id="mpesaCodeGroup">
+                                        <label class="form-label small fw-bold">M-Pesa Confirmation Code</label>
+                                        <input type="text" class="form-control text-uppercase" id="posMpesaCode" placeholder="e.g. SLX91234AB">
+                                    </div>
+
+                                    <div class="card bg-light p-3 border-0 mb-3">
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span>Selected Seat(s):</span>
+                                            <span class="fw-bold text-primary" id="posSeatsSummary">None</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span>Unit Fare:</span>
+                                            <span class="fw-bold">KES <span id="posUnitFare">500</span></span>
+                                        </div>
+                                        <hr class="my-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold">Total Amount Due:</span>
+                                            <span class="fs-5 fw-bold text-success">KES <span id="posTotalFare">0</span></span>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success w-100 btn-lg fw-bold" id="posSubmitBtn" disabled>
+                                        <i class="fa-solid fa-print me-2"></i> Issue & Print Ticket
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 3: MANIFEST MANAGEMENT & DISPATCH -->
+                <section id="view-manifest" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h4 class="fw-bold mb-1">Passenger Manifest & Dispatch</h4>
+                            <p class="text-muted small mb-0">Generate legal police-compliant passenger lists before vehicle exit.</p>
+                        </div>
+                        <button class="btn btn-outline-dark btn-sm fw-bold" onclick="printCurrentManifest()">
+                            <i class="fa-solid fa-print me-1"></i> Print Official Manifest
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm p-4 bg-white mb-4">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Select Active Trip Vehicle</label>
+                                <select class="form-select" id="manifestTripSelect" onchange="loadManifestData()">
+                                    <!-- Dynamic options -->
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Assigned Driver Name</label>
+                                <input type="text" class="form-control" id="manifestDriver" value="John Kamau">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Driver Phone</label>
+                                <input type="text" class="form-control" id="manifestDriverPhone" value="0722112233">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-primary w-100 fw-bold" onclick="dispatchVehicle()">
+                                    <i class="fa-solid fa-van-shuttle me-1"></i> Dispatch
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm p-4 bg-white" id="manifestTableCard">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0 text-primary" id="manifestHeaderTitle">Passenger List</h6>
+                            <span class="badge bg-secondary" id="manifestOccupancyBadge">0 / 14 Seats Filled</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 80px;">Seat #</th>
+                                        <th>Passenger Name</th>
+                                        <th>Phone Number</th>
+                                        <th>Ticket Ref</th>
+                                        <th>Payment Status</th>
+                                        <th>Check-in</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="manifestTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 4: SCHEDULE MANAGEMENT -->
+                <section id="view-schedules" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold mb-0">Daily Departure Schedule Manager</h4>
+                        <button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
+                            <i class="fa-solid fa-plus me-1"></i> Add New Trip
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm p-4 bg-white">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Route</th>
+                                        <th>Vehicle Reg</th>
+                                        <th>Capacity</th>
+                                        <th>Fare (KES)</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="schedulesTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 5: TRANSACTION LOGS -->
+                <section id="view-transactions" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold mb-0">Financial & Payment Logs</h4>
+                        <span class="badge bg-success fs-6 px-3 py-2">Total Collected: KES 74,000</span>
+                    </div>
+
+                    <div class="card border-0 shadow-sm p-4 bg-white">
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Receipt Ref</th>
+                                        <th>Passenger</th>
+                                        <th>Method</th>
+                                        <th>Amount</th>
+                                        <th>Agent</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD NEW SCHEDULE -->
+    <div class="modal fade" id="newScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-bus me-2"></i> Add Shuttle Departure</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form onsubmit="event.preventDefault(); createNewSchedule();">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Departure Time</label>
+                            <input type="time" class="form-control" id="newTime" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Route</label>
+                            <select class="form-select" id="newRoute">
+                                <option value="Kerugoya to Nairobi">Kerugoya → Nairobi</option>
+                                <option value="Nairobi to Kerugoya">Nairobi → Kerugoya</option>
+                                <option value="Kutus to Nairobi">Kutus → Nairobi</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Vehicle Registration</label>
+                            <input type="text" class="form-control text-uppercase" id="newReg" placeholder="e.g. KCH 890X" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Standard Fare (KES)</label>
+                            <input type="number" class="form-control" id="newFare" value="500" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Create Departure Trip</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIDDEN PRINTABLE MANIFEST FORMAT -->
+    <div class="printable-area p-5" id="printManifestDoc">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold mb-1">KUKENA SACCO LIMITED</h2>
+            <h5 class="text-uppercase mb-1" id="printTerminalHeader">Kerugoya Terminal</h5>
+            <p class="mb-0">OFFICIAL PASSENGER MANIFEST & DISPATCH CLEARANCE</p>
+            <hr class="border-2 border-dark my-3">
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                <p class="mb-1"><strong>Vehicle Registration:</strong> <span id="printReg">-</span></p>
+                <p class="mb-1"><strong>Route:</strong> <span id="printRoute">-</span></p>
+                <p class="mb-1"><strong>Departure Time:</strong> <span id="printTime">-</span></p>
+            </div>
+            <div class="col-6 text-end">
+                <p class="mb-1"><strong>Driver Name:</strong> <span id="printDriver">-</span></p>
+                <p class="mb-1"><strong>Driver Phone:</strong> <span id="printPhone">-</span></p>
+                <p class="mb-1"><strong>Date:</strong> <span id="printDate">2026-08-09</span></p>
+            </div>
+        </div>
+        <table class="table table-bordered border-dark align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">Seat</th>
+                    <th>Passenger Full Name</th>
+                    <th>Phone Contact</th>
+                    <th>Ticket No.</th>
+                    <th>Signature</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody"></tbody>
+        </table>
+        <div class="row mt-5 pt-3">
+            <div class="col-6">
+                <p>___________________________<br><strong>Terminal Agent Signature</strong></p>
+            </div>
+            <div class="col-6 text-end">
+                <p>___________________________<br><strong>Driver Signature</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application Controller Script -->
+    <script>
+        // Registered Staff Accounts Database (Mock)
+        const staffDatabase = [
+            { id: "STAFF-001", name: "Mwangi K.", role: "Ticketing Agent", defaultTerminal: "Kerugoya Main Terminal", pin: "1234" },
+            { id: "STAFF-002", name: "Grace Wanjiku", role: "Terminal Manager", defaultTerminal: "Nairobi Tea Room", pin: "5678" },
+            { id: "STAFF-003", name: "Peter Otieno", role: "Dispatch Controller", defaultTerminal: "Kutus Terminal", pin: "0000" }
+        ];
+
+        // Active Session State
+        let currentStaff = null;
+        let currentTerminal = "Kerugoya Main Terminal";
+        let activePosTripId = 1;
+        let posSelectedSeats = [];
+
+        let schedules = [
+            { id: 1, time: "06:00 AM", route: "Kerugoya to Nairobi", vehicle: "KCB 123A", fare: 500, status: "Ready", passengers: [
+                { seat: 1, name: "Samuel Njuguna", phone: "0711223344", ref: "KUK-9081", status: "Paid (M-Pesa)" },
+                { seat: 2, name: "Grace Wanjiku", phone: "0722334455", ref: "KUK-9082", status: "Paid (Cash)" },
+                { seat: 5, name: "Peter Otieno", phone: "0733445566", ref: "KUK-9085", status: "Paid (M-Pesa)" }
+            ]},
+            { id: 2, time: "08:30 AM", route: "Kerugoya to Nairobi", vehicle: "KCD 456B", fare: 500, status: "Boarding", passengers: [
+                { seat: 1, name: "Mary Muthoni", phone: "0744556677", ref: "KUK-9101", status: "Paid (M-Pesa)" }
+            ]},
+            { id: 3, time: "11:00 AM", route: "Kerugoya to Nairobi", vehicle: "KCE 789C", fare: 500, status: "Open", passengers: [] },
+            { id: 4, time: "02:00 PM", route: "Kerugoya to Nairobi", vehicle: "KCF 321D", fare: 500, status: "Open", passengers: [] }
+        ];
+
+        let transactionLogs = [
+            { time: "05:45 AM", ref: "SLX91234AB", passenger: "Samuel Njuguna", method: "M-Pesa", amount: 500, agent: "Online Portal" },
+            { time: "05:50 AM", ref: "CSH-0012", passenger: "Grace Wanjiku", method: "Cash", amount: 500, agent: "Mwangi K." },
+            { time: "06:00 AM", ref: "SLX91299CD", passenger: "Peter Otieno", method: "M-Pesa", amount: 500, agent: "Online Portal" }
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAuthSession();
+        });
+
+        /* ---------------- AUTHENTICATION LOGIC ---------------- */
+        function checkAuthSession() {
+            const savedSession = localStorage.getItem("kukena_staff_session");
+            if (savedSession) {
+                currentStaff = JSON.parse(savedSession);
+                currentTerminal = currentStaff.assignedTerminal || currentStaff.defaultTerminal;
+                launchPortalWorkspace();
+            } else {
+                document.getElementById('login-screen').classList.remove('d-none');
+                document.getElementById('app-workspace').classList.add('d-none');
+            }
+        }
+
+        function autoFillTerminal() {
+            const staffId = document.getElementById('staffAccountSelect').value;
+            const staff = staffDatabase.find(s => s.id === staffId);
+            if (staff) {
+                document.getElementById('loginTerminalSelect').value = staff.defaultTerminal;
+            }
+        }
+
+        function handleStaffLogin() {
+            const staffId = document.getElementById('staffAccountSelect').value;
+            const terminal = document.getElementById('loginTerminalSelect').value;
+            const pinInput = document.getElementById('staffPinInput').value;
+            const alertBox = document.getElementById('loginAlert');
+
+            const staff = staffDatabase.find(s => s.id === staffId);
+
+            if (!staff) {
+                alertBox.innerText = "Please select a valid staff account.";
+                alertBox.classList.remove('d-none');
+                return;
+            }
+
+            if (pinInput !== staff.pin) {
+                alertBox.innerText = "Invalid 4-digit PIN entered. Try again.";
+                alertBox.classList.remove('d-none');
+                return;
+            }
+
+            alertBox.classList.add('d-none');
+            currentStaff = { ...staff, assignedTerminal: terminal };
+            currentTerminal = terminal;
+
+            localStorage.setItem("kukena_staff_session", JSON.stringify(currentStaff));
+            document.getElementById('staffPinInput').value = '';
+
+            launchPortalWorkspace();
+        }
+
+        function launchPortalWorkspace() {
+            document.getElementById('login-screen').classList.add('d-none');
+            document.getElementById('app-workspace').classList.remove('d-none');
+
+            document.getElementById('currentAgentBadge').innerText = currentStaff.name;
+            document.getElementById('currentRoleBadge').innerText = currentStaff.role;
+            document.getElementById('currentStaffIdBadge').innerText = `ID: ${currentStaff.id}`;
+            document.getElementById('terminalLocationBadge').innerText = currentTerminal;
+
+            document.querySelectorAll('.active-terminal-text').forEach(el => el.innerText = currentTerminal);
+
+            renderDashboard();
+            renderSchedules();
+            renderTransactions();
+            initPosView();
+            initManifestView();
+        }
+
+        function handleStaffLogout() {
+            if (confirm("Are you sure you want to log out of Kukena Staff Portal?")) {
+                currentStaff = null;
+                localStorage.removeItem("kukena_staff_session");
+                document.getElementById('app-workspace').classList.add('d-none');
+                document.getElementById('login-screen').classList.remove('d-none');
+            }
+        }
+
+        function switchTerminal(termName) {
+            currentTerminal = termName;
+            if (currentStaff) {
+                currentStaff.assignedTerminal = termName;
+                localStorage.setItem("kukena_staff_session", JSON.stringify(currentStaff));
+            }
+            document.getElementById('terminalLocationBadge').innerText = termName;
+            document.querySelectorAll('.active-terminal-text').forEach(el => el.innerText = termName);
+            renderDashboard();
+        }
+
+        function navigateTo(viewId) {
+            ['dashboard', 'counter', 'manifest', 'schedules', 'transactions'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('d-none');
+                document.getElementById(`tab-${v}`).classList.remove('active');
+            });
+            document.getElementById(`view-${viewId}`).classList.remove('d-none');
+            document.getElementById(`tab-${viewId}`).classList.add('active');
+
+            if (viewId === 'manifest') loadManifestData();
+        }
+
+        /* ---------------- DASHBOARD LOGIC ---------------- */
+        function renderDashboard() {
+            const tbody = document.getElementById('dashboardDeparturesBody');
+            tbody.innerHTML = '';
+
+            schedules.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${s.time}</td>
+                    <td><span class="badge bg-light text-dark border">${s.vehicle}</span></td>
+                    <td>${s.route}</td>
+                    <td><strong class="text-primary">${s.passengers.length}</strong> / 14</td>
+                    <td><span class="badge ${s.status === 'Ready' ? 'bg-success' : s.status === 'Dispatched' ? 'bg-secondary' : 'bg-warning text-dark'}">${s.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary fw-bold" onclick="openPosForTrip(${s.id})">
+                            <i class="fa-solid fa-cash-register me-1"></i> Counter Book
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /* ---------------- POS TICKETING LOGIC ---------------- */
+        function initPosView() {
+            const tripContainer = document.getElementById('posTripOptions');
+            tripContainer.innerHTML = '';
+
+            schedules.forEach(s => {
+                const col = document.createElement('div');
+                col.className = 'col-6';
+                col.innerHTML = `
+                    <div class="card p-2 border text-center ${s.id === activePosTripId ? 'border-primary bg-light' : ''}" 
+                         style="cursor:pointer;" onclick="setPosTrip(${s.id})">
+                        <small class="fw-bold d-block">${s.time}</small>
+                        <span class="badge bg-secondary">${s.vehicle}</span>
+                    </div>
+                `;
+                tripContainer.appendChild(col);
+            });
+
+            renderPosSeatGrid();
+        }
+
+        function setPosTrip(tripId) {
+            activePosTripId = tripId;
+            posSelectedSeats = [];
+            initPosView();
+        }
+
+        function openPosForTrip(tripId) {
+            setPosTrip(tripId);
+            navigateTo('counter');
+        }
+
+        function renderPosSeatGrid() {
+            const grid = document.getElementById('posSeatGrid');
+            grid.innerHTML = '';
+            posSelectedSeats = [];
+            updatePosSummary();
+
+            const activeTrip = schedules.find(s => s.id === activePosTripId);
+            const occupiedSeats = activeTrip ? activeTrip.passengers.map(p => p.seat) : [];
+
+            const driver = document.createElement('div');
+            driver.className = 'seat driver';
+            driver.innerHTML = '<i class="fa-solid fa-steering-wheel"></i>';
+            grid.appendChild(driver);
+
+            for(let i = 0; i < 3; i++) {
+                const empty = document.createElement('div');
+                empty.style.visibility = 'hidden';
+                grid.appendChild(empty);
+            }
+
+            for (let i = 1; i <= 14; i++) {
+                const seat = document.createElement('div');
+                seat.className = 'seat';
+                seat.innerText = i;
+
+                if (occupiedSeats.includes(i)) {
+                    seat.classList.add('occupied');
+                    seat.title = 'Seat Occupied';
+                } else {
+                    seat.onclick = () => toggleSeatSelection(i, seat);
+                }
+                grid.appendChild(seat);
+            }
+        }
+
+        function toggleSeatSelection(seatNum, seatEl) {
+            const index = posSelectedSeats.indexOf(seatNum);
+            if (index > -1) {
+                posSelectedSeats.splice(index, 1);
+                seatEl.classList.remove('selected');
+            } else {
+                posSelectedSeats.push(seatNum);
+                seatEl.classList.add('selected');
+            }
+            updatePosSummary();
+        }
+
+        function updatePosSummary() {
+            const activeTrip = schedules.find(s => s.id === activePosTripId);
+            const unitFare = activeTrip ? activeTrip.fare : 500;
+            const totalFare = posSelectedSeats.length * unitFare;
+
+            document.getElementById('posSeatsSummary').innerText = posSelectedSeats.length > 0 ? posSelectedSeats.sort((a,b)=>a-b).join(', ') : 'None';
+            document.getElementById('posUnitFare').innerText = unitFare;
+            document.getElementById('posTotalFare').innerText = totalFare.toLocaleString();
+
+            const submitBtn = document.getElementById('posSubmitBtn');
+            submitBtn.disabled = posSelectedSeats.length === 0;
+        }
+
+        function togglePaymentFields() {
+            const method = document.getElementById('posPaymentMethod').value;
+            const codeGroup = document.getElementById('mpesaCodeGroup');
+            if (method === 'MPesa-Code') {
+                codeGroup.classList.remove('d-none');
+                document.getElementById('posMpesaCode').setAttribute('required', 'true');
+            } else {
+                codeGroup.classList.add('d-none');
+                document.getElementById('posMpesaCode').removeAttribute('required');
+            }
+        }
+
+        function processCounterSale() {
+            const passengerName = document.getElementById('posPassengerName').value.trim();
+            const passengerPhone = document.getElementById('posPassengerPhone').value.trim();
+            const paymentMethod = document.getElementById('posPaymentMethod').value;
+            const mpesaCode = document.getElementById('posMpesaCode').value.trim();
+
+            if (!passengerName || !passengerPhone || posSelectedSeats.length === 0) return;
+
+            const activeTrip = schedules.find(s => s.id === activePosTripId);
+            if (!activeTrip) return;
+
+            const refCode = paymentMethod === 'MPesa-Code' && mpesaCode ? mpesaCode.toUpperCase() : `KUK-${Math.floor(1000 + Math.random() * 9000)}`;
+            const agentName = currentStaff ? currentStaff.name : "Mwangi K.";
+
+            posSelectedSeats.forEach(seatNum => {
+                activeTrip.passengers.push({
+                    seat: seatNum,
+                    name: passengerName,
+                    phone: passengerPhone,
+                    ref: refCode,
+                    status: `Paid (${paymentMethod})`
+                });
+
+                transactionLogs.unshift({
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    ref: refCode,
+                    passenger: passengerName,
+                    method: paymentMethod,
+                    amount: activeTrip.fare,
+                    agent: agentName
+                });
+            });
+
+            alert(`Ticket successfully issued by ${agentName} for seat(s): ${posSelectedSeats.join(', ')}! Ref: ${refCode}`);
+            document.getElementById('posPassengerName').value = '';
+            document.getElementById('posPassengerPhone').value = '';
+            document.getElementById('posMpesaCode').value = '';
+
+            renderDashboard();
+            renderTransactions();
+            renderPosSeatGrid();
+            if (!document.getElementById('view-manifest').classList.contains('d-none')) {
+                loadManifestData();
+            }
+        }
+
+        /* ---------------- MANIFEST LOGIC ---------------- */
+        function initManifestView() {
+            const select = document.getElementById('manifestTripSelect');
+            select.innerHTML = '';
+            schedules.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = `${s.time} - ${s.vehicle} (${s.route})`;
+                select.appendChild(opt);
+            });
+            loadManifestData();
+        }
+
+        function loadManifestData() {
+            const select = document.getElementById('manifestTripSelect');
+            if (!select.value) return;
+            const tripId = parseInt(select.value);
+            const trip = schedules.find(s => s.id === tripId);
+            if (!trip) return;
+
+            document.getElementById('manifestHeaderTitle').innerText = `Passenger List - ${trip.vehicle} (${trip.time})`;
+            document.getElementById('manifestOccupancyBadge').innerText = `${trip.passengers.length} / 14 Seats Filled`;
+
+            const tbody = document.getElementById('manifestTableBody');
+            tbody.innerHTML = '';
+
+            for (let i = 1; i <= 14; i++) {
+                const passenger = trip.passengers.find(p => p.seat === i);
+                const tr = document.createElement('tr');
+                if (passenger) {
+                    tr.innerHTML = `
+                        <td class="fw-bold text-center">${i}</td>
+                        <td class="fw-semibold">${passenger.name}</td>
+                        <td>${passenger.phone}</td>
+                        <td><code>${passenger.ref}</code></td>
+                        <td><span class="badge bg-success-subtle text-success border border-success">${passenger.status}</span></td>
+                        <td><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Boarded</span></td>
+                    `;
+                } else {
+                    tr.className = 'table-light text-muted';
+                    tr.innerHTML = `
+                        <td class="fw-bold text-center">${i}</td>
+                        <td colspan="4"><em>Empty Seat</em></td>
+                        <td><span class="badge bg-secondary">Unoccupied</span></td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
+        function dispatchVehicle() {
+            const select = document.getElementById('manifestTripSelect');
+            const tripId = parseInt(select.value);
+            const trip = schedules.find(s => s.id === tripId);
+            if (trip) {
+                trip.status = "Dispatched";
+                renderDashboard();
+                alert(`Vehicle ${trip.vehicle} has been dispatched successfully by ${currentStaff ? currentStaff.name : 'Agent'}!`);
+            }
+        }
+
+        function printCurrentManifest() {
+            const select = document.getElementById('manifestTripSelect');
+            const tripId = parseInt(select.value);
+            const trip = schedules.find(s => s.id === tripId);
+            if (!trip) return;
+
+            document.getElementById('printTerminalHeader').innerText = currentTerminal;
+            document.getElementById('printReg').innerText = trip.vehicle;
+            document.getElementById('printRoute').innerText = trip.route;
+            document.getElementById('printTime').innerText = trip.time;
+            document.getElementById('printDriver').innerText = document.getElementById('manifestDriver').value || 'N/A';
+            document.getElementById('printPhone').innerText = document.getElementById('manifestDriverPhone').value || 'N/A';
+            document.getElementById('printDate').innerText = new Date().toISOString().split('T')[0];
+
+            const tbody = document.getElementById('printTableBody');
+            tbody.innerHTML = '';
+
+            for (let i = 1; i <= 14; i++) {
+                const passenger = trip.passengers.find(p => p.seat === i);
+                const tr = document.createElement('tr');
+                if (passenger) {
+                    tr.innerHTML = `
+                        <td class="text-center fw-bold">${i}</td>
+                        <td>${passenger.name}</td>
+                        <td>${passenger.phone}</td>
+                        <td>${passenger.ref}</td>
+                        <td></td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td class="text-center text-muted">${i}</td>
+                        <td class="text-muted">-- Empty --</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            }
+
+            window.print();
+        }
+
+        /* ---------------- SCHEDULES LOGIC ---------------- */
+        function renderSchedules() {
+            const tbody = document.getElementById('schedulesTableBody');
+            tbody.innerHTML = '';
+
+            schedules.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${s.time}</td>
+                    <td>${s.route}</td>
+                    <td><span class="badge bg-light text-dark border">${s.vehicle}</span></td>
+                    <td>14 Seats</td>
+                    <td>KES ${s.fare}</td>
+                    <td><span class="badge ${s.status === 'Ready' ? 'bg-success' : s.status === 'Dispatched' ? 'bg-secondary' : 'bg-warning text-dark'}">${s.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSchedule(${s.id})">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function createNewSchedule() {
+            const timeVal = document.getElementById('newTime').value;
+            const routeVal = document.getElementById('newRoute').value;
+            const regVal = document.getElementById('newReg').value.toUpperCase();
+            const fareVal = parseInt(document.getElementById('newFare').value) || 500;
+
+            if (!timeVal || !regVal) return;
+
+            const [hours, minutes] = timeVal.split(':');
+            const hour = parseInt(hours);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const formattedHour = hour % 12 || 12;
+            const formattedTime = `${formattedHour}:${minutes.padStart(2, '0')} ${ampm}`;
+
+            const newTrip = {
+                id: Date.now(),
+                time: formattedTime,
+                route: routeVal,
+                vehicle: regVal,
+                fare: fareVal,
+                status: "Open",
+                passengers: []
+            };
+
+            schedules.push(newTrip);
+            renderDashboard();
+            renderSchedules();
+            initPosView();
+            initManifestView();
+
+            const modalEl = document.getElementById('newScheduleModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+
+            document.getElementById('newReg').value = '';
+            document.getElementById('newTime').value = '';
+        }
+
+        function deleteSchedule(id) {
+            schedules = schedules.filter(s => s.id !== id);
+            renderDashboard();
+            renderSchedules();
+            initPosView();
+            initManifestView();
+        }
+
+        /* ---------------- TRANSACTIONS LOGIC ---------------- */
+        function renderTransactions() {
+            const tbody = document.getElementById('transactionsTableBody');
+            tbody.innerHTML = '';
+
+            transactionLogs.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="small text-muted">${t.time}</td>
+                    <td><code>${t.ref}</code></td>
+                    <td class="fw-semibold">${t.passenger}</td>
+                    <td><span class="badge ${t.method.includes('M-Pesa') ? 'bg-success' : 'bg-primary'}">${t.method}</span></td>
+                    <td class="fw-bold">KES ${t.amount}</td>
+                    <td class="small">${t.agent}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

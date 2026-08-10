@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kukena SACCO - Home & Online Booking Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --dark-blue: #0a4da3;
+            --accent-green: #198754;
+            --amber-gold: #ffc107;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            scroll-behavior: smooth;
+        }
+
+        /* Hero Header Section using BACKGROUND.png */
+        .hero-section {
+            background: linear-gradient(rgba(10, 77, 163, 0.75), rgba(0, 0, 0, 0.82)), 
+                        url('BACKGROUND.png') center/cover no-repeat;
+            color: white;
+            padding: 100px 0 120px 0;
+            position: relative;
+        }
+
+        /* Search Card Overlapping Hero */
+        .search-card {
+            margin-top: -60px;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #e7f1ff;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 15px auto;
+        }
+
+        .route-card {
+            border: none;
+            border-radius: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .route-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .announcement-bar {
+            background-color: #fff3cd;
+            color: #856404;
+            border-bottom: 1px solid #ffeeba;
+        }
+
+        /* Interactive Seat Selection Component */
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            max-width: 340px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 16px;
+            border: 2px solid #e9ecef;
+        }
+
+        .seat {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            background-color: #f8f9fa;
+        }
+
+        .seat:hover:not(.occupied):not(.driver) {
+            border-color: var(--primary-blue);
+            background-color: #e7f1ff;
+        }
+
+        .seat.selected {
+            background-color: var(--primary-blue) !important;
+            color: white !important;
+            border-color: var(--primary-blue) !important;
+        }
+
+        .seat.occupied {
+            background-color: #dc3545 !important;
+            color: white !important;
+            cursor: not-allowed;
+            opacity: 0.75;
+        }
+
+        .seat.driver {
+            background-color: #6c757d;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .seat-grid.locked .seat:not(.driver):not(.occupied) {
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+
+        .form-section-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .auth-locked-overlay {
+            background-color: #ffffff;
+            border: 2px dashed #0d6efd;
+            border-radius: 16px;
+            padding: 50px 20px;
+            text-align: center;
+        }
+
+        footer {
+            background-color: #111827;
+            color: #9ca3af;
+        }
+
+        footer h5 {
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Announcement Bar -->
+    <div class="announcement-bar py-2 text-center small fw-semibold">
+        <i class="fa-solid fa-bullhorn me-2 text-warning"></i> Travel Notice: Early morning shuttles fill up fast! Book online in advance to reserve your preferred seat.
+    </div>
+
+    <!-- Navigation Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <i class="fa-solid fa-van-shuttle fs-3 me-2"></i> KUKENA SACCO
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link active fw-semibold" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#booking-section">Book Shuttle</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#popular-routes">Routes & Fares</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#services">Services</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contacts">Terminals & Contact</a>
+                    </li>
+                    
+                    <!-- Dynamic Auth Controls -->
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0" id="loggedOutNavControls">
+                        <button class="btn btn-outline-light me-2 fw-semibold px-3" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuthTab('login')">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i> Log In
+                        </button>
+                        <button class="btn btn-warning fw-bold px-3" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuthTab('register')">
+                            <i class="fa-solid fa-user-plus me-1"></i> Register
+                        </button>
+                    </li>
+                    <li class="nav-item ms-lg-3 mt-2 mt-lg-0 d-none" id="loggedInNavControls">
+                        <div class="dropdown">
+                            <button class="btn btn-warning fw-bold dropdown-toggle" type="button" id="userMenuBtn" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-circle-user me-1"></i> <span id="navUserName">Account</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li><a class="dropdown-item" href="#booking-section"><i class="fa-solid fa-ticket me-2 text-primary"></i>My Bookings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger fw-semibold" href="#" onclick="logoutUser()"><i class="fa-solid fa-right-from-bracket me-2"></i>Log Out</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Banner Section -->
+    <section class="hero-section text-center text-lg-start">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8 mx-auto text-center">
+                    <span class="badge bg-warning text-dark px-3 py-2 fs-6 mb-3 rounded-pill fw-bold">
+                        <i class="fa-solid fa-star me-1"></i> Reliable Kirinyaga - Nairobi Shuttle Service
+                    </span>
+                    <h1 class="display-4 fw-bold mb-3 text-white">Travel Safely, Travel in Comfort with Kukena SACCO</h1>
+                    <p class="lead mb-4 text-light">Daily luxury shuttle services linking Kerugoya, Kutus, Kagio, Sagana, and Nairobi Tea Room terminal with instant M-Pesa booking.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hero Quick Search Card -->
+    <div class="container">
+        <div class="card search-card p-4 bg-white">
+            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-magnifying-glass me-2"></i> Quick Shuttle Search</h5>
+            <form onsubmit="event.preventDefault(); handleHeroSearchAttempt();">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-semibold">From (Departure)</label>
+                        <select class="form-select" id="heroOrigin" required>
+                            <option value="Kerugoya" selected>Kerugoya Main Terminal</option>
+                            <option value="Kutus">Kutus Terminal</option>
+                            <option value="Nairobi">Nairobi (Tea Room Terminal)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-semibold">To (Destination)</label>
+                        <select class="form-select" id="heroDest" required>
+                            <option value="Nairobi" selected>Nairobi (Tea Room Terminal)</option>
+                            <option value="Kerugoya">Kerugoya Main Terminal</option>
+                            <option value="Kutus">Kutus Terminal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-semibold">Travel Date</label>
+                        <input type="date" class="form-control" id="heroDateInput" required>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                            <i class="fa-solid fa-bus me-1"></i> Search Seats
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ONLINE BOOKING PORTAL (PROTECTED AREA) -->
+    <section id="booking-section" class="py-5 mt-4">
+        <div class="container">
+            <div class="text-center mb-4">
+                <h6 class="text-primary fw-bold text-uppercase">Online Booking Portal</h6>
+                <h2 class="fw-bold">Reserve Your Shuttle Seat</h2>
+            </div>
+
+            <!-- UNAUTHENTICATED GUARD OVERLAY -->
+            <div id="bookingLoggedOutGuard" class="auth-locked-overlay shadow-sm my-4">
+                <div class="mb-3 text-primary">
+                    <i class="fa-solid fa-lock fs-1"></i>
+                </div>
+                <h4 class="fw-bold">Login Required for Seat Reservations</h4>
+                <p class="text-muted max-w-md mx-auto mb-4">Please log in to your Kukena SACCO account or register a new account to view live trip availability, pick seats, and complete tickets.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-primary btn-lg px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuthTab('login')">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> Log In to Book
+                    </button>
+                    <button class="btn btn-outline-primary btn-lg px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuthTab('register')">
+                        Register Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- AUTHENTICATED BOOKING CONTAINER -->
+            <div id="bookingAuthenticatedContainer" class="d-none">
+                <!-- Step 1: Search Form Inputs -->
+                <div id="bookingStep1" class="card p-4 mb-4 shadow-sm border-0">
+                    <form onsubmit="event.preventDefault(); processSearch();">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Departure Terminal</label>
+                                <select class="form-select" id="originSelect" required>
+                                    <option value="Kerugoya">Kerugoya Main Terminal</option>
+                                    <option value="Kutus">Kutus Terminal</option>
+                                    <option value="Nairobi">Nairobi (Tea Room Terminal)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Destination Terminal</label>
+                                <select class="form-select" id="destSelect" required>
+                                    <option value="Nairobi">Nairobi (Tea Room Terminal)</option>
+                                    <option value="Kerugoya">Kerugoya Main Terminal</option>
+                                    <option value="Kutus">Kutus Terminal</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Travel Date</label>
+                                <input type="date" class="form-control" id="travelDate" required>
+                            </div>
+                            <div class="col-12 text-end mt-3">
+                                <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                                    <i class="fa-solid fa-magnifying-glass me-1"></i> Find Available Shuttles
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Step 2: Departure Schedule Table -->
+                <div id="bookingStep2" class="card p-4 mb-4 shadow-sm border-0 d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="card-title fw-bold mb-0"><i class="fa-solid fa-clock me-2 text-primary"></i> Select Departure Schedule</h5>
+                            <small class="text-muted" id="selectedDateHeaderBadge"></small>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="goToStep(1)"><i class="fa-solid fa-arrow-left me-1"></i> Change Search</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Departure Time</th>
+                                    <th>Route</th>
+                                    <th>Vehicle Reg</th>
+                                    <th>Fare</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Step 3: Interactive Seat Picker & Checkout -->
+                <div id="bookingStep3" class="d-none">
+                    <div class="row g-4">
+                        <!-- Seat Map Container -->
+                        <div class="col-lg-6">
+                            <div class="card p-4 h-100 border-0 shadow-sm d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h5 class="fw-bold mb-0"><i class="fa-solid fa-chair me-2 text-primary"></i> Choose Preferred Seat(s)</h5>
+                                            <small class="text-muted" id="seatPickerDateDisplay"></small>
+                                        </div>
+                                        <span class="badge bg-secondary" id="liveRemainingSeatsBadge">14 remaining</span>
+                                    </div>
+                                    <div class="seat-grid" id="seatContainer"></div>
+                                </div>
+
+                                <!-- Seat Lock Action Controls -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="small text-muted">Selected Seats: <strong id="pickedCountText" class="text-dark">0</strong></span>
+                                        <span class="small text-muted">Status: <span id="seatStatusBadge" class="badge bg-warning text-dark">Awaiting Selection</span></span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <button class="btn btn-outline-danger w-100 btn-sm" id="cancelSeatBtn" onclick="cancelSeatSelection()" disabled>
+                                                <i class="fa-solid fa-xmark me-1"></i> Clear
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-primary w-100 btn-sm" id="confirmSeatBtn" onclick="confirmSeatSelection()" disabled>
+                                                <i class="fa-solid fa-check me-1"></i> Book Seats
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Passenger Checkout Card -->
+                        <div class="col-lg-6">
+                            <div class="card p-4 border-0 shadow-sm form-section-disabled" id="passengerDetailsCard">
+                                <h5 class="fw-bold mb-3"><i class="fa-solid fa-user-check me-2 text-primary"></i> Passenger & Payment Details</h5>
+                                <form onsubmit="event.preventDefault(); processPayment();">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Full Name</label>
+                                        <input type="text" class="form-control" id="passengerName" required placeholder="e.g. John Mwangi">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">M-Pesa Phone Number</label>
+                                        <input type="tel" class="form-control" id="passengerPhone" placeholder="0712345678" required>
+                                    </div>
+                                    <div class="card bg-light p-3 mb-3 border-0">
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span>Selected Route:</span>
+                                            <span id="summaryRoute" class="fw-bold">-</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span>Travel Date:</span>
+                                            <span id="summaryDate" class="fw-bold text-primary">-</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span>Seat Number(s):</span>
+                                            <span id="summarySeat" class="badge bg-primary">None</span>
+                                        </div>
+                                        <hr class="my-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold">Total Fare Amount:</span>
+                                            <span class="fs-5 fw-bold text-success">KES <span id="summaryFare">0</span></span>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100 btn-lg fw-bold" id="payBtn" disabled>
+                                        <i class="fa-solid fa-mobile-screen-button me-2"></i> Pay via M-Pesa Express
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section id="services" class="py-5 bg-white">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h6 class="text-primary fw-bold text-uppercase">Why Travel With Us</h6>
+                <h2 class="fw-bold">The Kukena SACCO Advantage</h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 text-center">
+                    <div class="card h-100 p-4 border-0 shadow-sm bg-light">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h5 class="fw-bold">Safety First</h5>
+                        <p class="text-muted">Experienced drivers, speed-governed vehicles, and strict maintenance protocols for total peace of mind.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="card h-100 p-4 border-0 shadow-sm bg-light">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <h5 class="fw-bold">Punctual Schedules</h5>
+                        <p class="text-muted">Frequent daily departures every 30 minutes from all major terminals in Kirinyaga and Nairobi.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="card h-100 p-4 border-0 shadow-sm bg-light">
+                        <div class="feature-icon">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                        </div>
+                        <h5 class="fw-bold">Instant Online Booking</h5>
+                        <p class="text-muted">Choose your seat, pay conveniently via M-Pesa STK Push, and receive an instant digital boarding pass.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Routes & Pricing Section -->
+    <section id="popular-routes" class="py-5 bg-light">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h6 class="text-primary fw-bold text-uppercase mb-1">Fares & Routes</h6>
+                    <h2 class="fw-bold mb-0">Popular Destinations</h2>
+                </div>
+                <a href="#booking-section" class="btn btn-outline-primary d-none d-md-inline-block">View Schedules</a>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card route-card p-4 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-success">Daily Service</span>
+                            <span class="fs-5 fw-bold text-primary">KES 500</span>
+                        </div>
+                        <h5 class="fw-bold">Kerugoya <i class="fa-solid fa-arrow-right text-muted mx-2 fs-6"></i> Nairobi</h5>
+                        <p class="text-muted small mb-3">Tea Room Terminal via Sagana - Thika Superhighway</p>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span><i class="fa-solid fa-clock me-1"></i> 5:30 AM - 7:00 PM</span>
+                            <span><i class="fa-solid fa-chair me-1"></i> 14-Seater</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card route-card p-4 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-success">Daily Service</span>
+                            <span class="fs-5 fw-bold text-primary">KES 450</span>
+                        </div>
+                        <h5 class="fw-bold">Kutus <i class="fa-solid fa-arrow-right text-muted mx-2 fs-6"></i> Nairobi</h5>
+                        <p class="text-muted small mb-3">Tea Room Terminal via Kagio - Sagana</p>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span><i class="fa-solid fa-clock me-1"></i> 6:00 AM - 6:30 PM</span>
+                            <span><i class="fa-solid fa-chair me-1"></i> 14-Seater</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card route-card p-4 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-success">Daily Service</span>
+                            <span class="fs-5 fw-bold text-primary">KES 500</span>
+                        </div>
+                        <h5 class="fw-bold">Nairobi <i class="fa-solid fa-arrow-right text-muted mx-2 fs-6"></i> Kerugoya</h5>
+                        <p class="text-muted small mb-3">Departs Tea Room Terminal to Kerugoya Main</p>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span><i class="fa-solid fa-clock me-1"></i> 6:00 AM - 8:00 PM</span>
+                            <span><i class="fa-solid fa-chair me-1"></i> 14-Seater</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Additional SACCO Services Banner -->
+    <section class="py-5 bg-primary text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8 mb-3 mb-lg-0">
+                    <h3 class="fw-bold">Need to Send a Parcel or Package?</h3>
+                    <p class="mb-0">Kukena SACCO Courier provides fast, reliable, and secure door-to-terminal parcel delivery across Kirinyaga County and Nairobi.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="#contacts" class="btn btn-warning btn-lg fw-bold"><i class="fa-solid fa-box me-1"></i> Contact Courier Desk</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUTHENTICATION MODAL (LOGIN & REGISTER) -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold" id="authModalTitle"><i class="fa-solid fa-user-lock me-2"></i> Account Portal</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Auth Switcher Tabs -->
+                    <ul class="nav nav-pills nav-justified mb-4" id="authTab" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginTabPane" type="button" onclick="switchAuthTab('login')">Log In</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="pill" data-bs-target="#registerTabPane" type="button" onclick="switchAuthTab('register')">Register</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="authTabContent">
+                        <!-- Login Form -->
+                        <div class="tab-pane fade show active" id="loginTabPane">
+                            <form onsubmit="event.preventDefault(); handleLoginSubmit();">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Email or Phone</label>
+                                    <input type="text" class="form-control" id="loginIdentifier" placeholder="0712345678 or john@example.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Password</label>
+                                    <input type="password" class="form-control" id="loginPassword" required placeholder="••••••••">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Sign In</button>
+                            </form>
+                        </div>
+
+                        <!-- Register Form -->
+                        <div class="tab-pane fade" id="registerTabPane">
+                            <form onsubmit="event.preventDefault(); handleRegisterSubmit();">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Full Name</label>
+                                    <input type="text" class="form-control" id="regName" placeholder="John Mwangi" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Phone Number (M-Pesa)</label>
+                                    <input type="tel" class="form-control" id="regPhone" placeholder="0712345678" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Email Address</label>
+                                    <input type="email" class="form-control" id="regEmail" placeholder="john@example.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Create Password</label>
+                                    <input type="password" class="form-control" id="regPassword" required placeholder="••••••••">
+                                </div>
+                                <button type="submit" class="btn btn-success w-100 py-2 fw-bold">Create Account</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="contacts" class="pt-5 pb-4">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-van-shuttle text-primary me-2"></i>KUKENA SACCO</h5>
+                    <p class="small">Providing premier passenger transport and courier logistics solutions linking Kirinyaga County to Nairobi efficiently and safely.</p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="fa-brands fa-twitter"></i></a>
+                        <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-3">Main Terminal Offices</h5>
+                    <ul class="list-unstyled small">
+                        <li class="mb-2"><i class="fa-solid fa-location-dot me-2 text-primary"></i> <strong>Kerugoya:</strong> Main Bus Park Terminal Office</li>
+                        <li class="mb-2"><i class="fa-solid fa-location-dot me-2 text-primary"></i> <strong>Kutus:</strong> Kutus Town Main Stage</li>
+                        <li class="mb-2"><i class="fa-solid fa-location-dot me-2 text-primary"></i> <strong>Nairobi:</strong> Tea Room Terminal, Accra Road</li>
+                    </ul>
+                </div>
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-3">Customer Support</h5>
+                    <p class="small mb-1"><i class="fa-solid fa-phone me-2 text-primary"></i> +254 712 345 678</p>
+                    <p class="small mb-1"><i class="fa-solid fa-envelope me-2 text-primary"></i> info@kukenasacco.co.ke</p>
+                    <p class="small"><i class="fa-solid fa-clock me-2 text-primary"></i> Mon - Sun: 5:00 AM - 9:00 PM</p>
+                </div>
+            </div>
+            <hr class="mt-4 border-secondary">
+            <div class="text-center small">
+                <p class="mb-0">&copy; 2026 Kukena SACCO Ltd. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const TOTAL_CAPACITY = 14;
+        let currentUser = null;
+
+        // DATE-SEPARATED BOOKINGS DICTIONARY
+        // Format: { [scheduleId]: { [YYYY-MM-DD]: [seatNumbers...] } }
+        const mockSchedules = [
+            { 
+                id: 101, 
+                origin: 'Kerugoya', 
+                dest: 'Nairobi', 
+                time: '06:00 AM', 
+                vehicle: 'KCN 482B (14-Seater)', 
+                fare: 500, 
+                bookedSeatsByDate: {
+                    '2026-08-03': [1, 3], // Today's bookings
+                    '2026-08-04': [2]     // Tomorrow's bookings (completely separated)
+                }
+            },
+            { 
+                id: 102, 
+                origin: 'Kerugoya', 
+                dest: 'Nairobi', 
+                time: '08:30 AM', 
+                vehicle: 'KCP 109C (14-Seater)', 
+                fare: 500, 
+                bookedSeatsByDate: {
+                    '2026-08-03': [2, 5, 6]
+                }
+            },
+            { 
+                id: 103, 
+                origin: 'Kutus', 
+                dest: 'Nairobi', 
+                time: '07:15 AM', 
+                vehicle: 'KCR 302A (14-Seater)', 
+                fare: 450, 
+                bookedSeatsByDate: {
+                    '2026-08-03': [4]
+                }
+            },
+            { 
+                id: 104, 
+                origin: 'Nairobi', 
+                dest: 'Kerugoya', 
+                time: '09:00 AM', 
+                vehicle: 'KCS 551D (14-Seater)', 
+                fare: 500, 
+                bookedSeatsByDate: {
+                    '2026-08-03': [7, 8]
+                }
+            }
+        ];
+
+        let selectedSchedule = null;
+        let selectedTravelDate = null;
+        let chosenSeats = [];
+        let isSeatsConfirmed = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('heroDateInput').min = today;
+            document.getElementById('heroDateInput').value = today;
+            document.getElementById('travelDate').min = today;
+            document.getElementById('travelDate').value = today;
+
+            const savedSession = localStorage.getItem('kukena_active_user');
+            if (savedSession) {
+                currentUser = JSON.parse(savedSession);
+                updateAuthUI();
+            }
+        });
+
+        // Helper function to get array of booked seats specifically for a given date
+        function getBookedSeatsForDate(schedule, dateStr) {
+            if (!schedule.bookedSeatsByDate) {
+                schedule.bookedSeatsByDate = {};
+            }
+            if (!schedule.bookedSeatsByDate[dateStr]) {
+                schedule.bookedSeatsByDate[dateStr] = [];
+            }
+            return schedule.bookedSeatsByDate[dateStr];
+        }
+
+        function switchAuthTab(type) {
+            const loginTab = new bootstrap.Tab(document.getElementById('login-tab'));
+            const registerTab = new bootstrap.Tab(document.getElementById('register-tab'));
+            if (type === 'login') {
+                loginTab.show();
+            } else {
+                registerTab.show();
+            }
+        }
+
+        function handleLoginSubmit() {
+            const id = document.getElementById('loginIdentifier').value;
+            currentUser = {
+                name: id.includes('@') ? id.split('@')[0] : 'Valued Customer',
+                phone: id.includes('@') ? '0712345678' : id,
+                email: id.includes('@') ? id : 'customer@kukenasacco.co.ke'
+            };
+
+            localStorage.setItem('kukena_active_user', JSON.stringify(currentUser));
+            updateAuthUI();
+
+            const modalElem = document.getElementById('authModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElem);
+            if (modalInstance) modalInstance.hide();
+        }
+
+        function handleRegisterSubmit() {
+            const name = document.getElementById('regName').value;
+            const phone = document.getElementById('regPhone').value;
+            const email = document.getElementById('regEmail').value;
+
+            currentUser = { name, phone, email };
+            localStorage.setItem('kukena_active_user', JSON.stringify(currentUser));
+            updateAuthUI();
+
+            const modalElem = document.getElementById('authModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElem);
+            if (modalInstance) modalInstance.hide();
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            localStorage.removeItem('kukena_active_user');
+            updateAuthUI();
+        }
+
+        function updateAuthUI() {
+            const loggedOutNav = document.getElementById('loggedOutNavControls');
+            const loggedInNav = document.getElementById('loggedInNavControls');
+            const guard = document.getElementById('bookingLoggedOutGuard');
+            const container = document.getElementById('bookingAuthenticatedContainer');
+
+            if (currentUser) {
+                loggedOutNav.classList.add('d-none');
+                loggedInNav.classList.remove('d-none');
+                document.getElementById('navUserName').innerText = currentUser.name;
+
+                guard.classList.add('d-none');
+                container.classList.remove('d-none');
+
+                document.getElementById('passengerName').value = currentUser.name;
+                document.getElementById('passengerPhone').value = currentUser.phone;
+            } else {
+                loggedOutNav.classList.remove('d-none');
+                loggedInNav.classList.add('d-none');
+
+                guard.classList.remove('d-none');
+                container.classList.add('d-none');
+            }
+        }
+
+        function handleHeroSearchAttempt() {
+            if (!currentUser) {
+                const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+                authModal.show();
+                return;
+            }
+
+            const origin = document.getElementById('heroOrigin').value;
+            const dest = document.getElementById('heroDest').value;
+            const date = document.getElementById('heroDateInput').value;
+
+            document.getElementById('originSelect').value = origin;
+            document.getElementById('destSelect').value = dest;
+            document.getElementById('travelDate').value = date;
+
+            document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' });
+            processSearch();
+        }
+
+        function processSearch() {
+            const origin = document.getElementById('originSelect').value;
+            const dest = document.getElementById('destSelect').value;
+            selectedTravelDate = document.getElementById('travelDate').value;
+
+            if (origin === dest) {
+                alert('Departure and Destination terminals cannot be the same!');
+                return;
+            }
+
+            document.getElementById('selectedDateHeaderBadge').innerText = `Travel Date: ${selectedTravelDate}`;
+
+            const tbody = document.getElementById('scheduleTableBody');
+            tbody.innerHTML = '';
+
+            const matching = mockSchedules.filter(s => s.origin === origin && s.dest === dest);
+
+            if (matching.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No shuttles found for ${origin} to ${dest} on ${selectedTravelDate}.</td></tr>`;
+            } else {
+                matching.forEach(s => {
+                    // CALCULATE REMAINING SEATS ISOLATED TO THE SELECTED DATE
+                    const bookedOnDate = getBookedSeatsForDate(s, selectedTravelDate);
+                    const remaining = TOTAL_CAPACITY - bookedOnDate.length;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${s.time}</strong></td>
+                            <td>${s.origin} <i class="fa-solid fa-arrow-right fs-7 text-muted"></i> ${s.dest}</td>
+                            <td>${s.vehicle}</td>
+                            <td class="fw-bold text-success">KES ${s.fare}</td>
+                            <td><span class="badge ${remaining > 0 ? 'bg-success' : 'bg-danger'}">${remaining} seats open</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="selectSchedule(${s.id}, '${selectedTravelDate}')" ${remaining === 0 ? 'disabled' : ''}>
+                                    ${remaining > 0 ? 'Select Shuttle' : 'Sold Out'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            goToStep(2);
+        }
+
+        function selectSchedule(id, dateStr) {
+            selectedSchedule = mockSchedules.find(s => s.id === id);
+            selectedTravelDate = dateStr;
+            chosenSeats = [];
+            isSeatsConfirmed = false;
+
+            document.getElementById('seatPickerDateDisplay').innerText = `For Date: ${selectedTravelDate}`;
+
+            renderSeats();
+            updateTripSummary();
+            goToStep(3);
+        }
+
+        function renderSeats() {
+            const container = document.getElementById('seatContainer');
+            container.innerHTML = '<div class="seat driver"><i class="fa-solid fa-steering-wheel"></i> D</div><div></div><div></div>';
+
+            // READ BOOKED SEATS ONLY FOR THE CURRENT TRAVEL DATE
+            const bookedForDate = getBookedSeatsForDate(selectedSchedule, selectedTravelDate);
+            const remaining = TOTAL_CAPACITY - bookedForDate.length;
+            document.getElementById('liveRemainingSeatsBadge').innerText = `${remaining} remaining`;
+
+            for (let i = 1; i <= TOTAL_CAPACITY; i++) {
+                const seatDiv = document.createElement('div');
+                seatDiv.className = 'seat';
+                seatDiv.innerText = i;
+
+                if (bookedForDate.includes(i)) {
+                    seatDiv.classList.add('occupied');
+                } else {
+                    if (chosenSeats.includes(i)) seatDiv.classList.add('selected');
+                    seatDiv.onclick = () => {
+                        if (!isSeatsConfirmed) toggleSeat(i, seatDiv);
+                    };
+                }
+                container.appendChild(seatDiv);
+            }
+        }
+
+        function toggleSeat(seatNum, elem) {
+            if (chosenSeats.includes(seatNum)) {
+                chosenSeats = chosenSeats.filter(s => s !== seatNum);
+                elem.classList.remove('selected');
+            } else {
+                chosenSeats.push(seatNum);
+                elem.classList.add('selected');
+            }
+            updateSeatControls();
+        }
+
+        function updateSeatControls() {
+            document.getElementById('pickedCountText').innerText = chosenSeats.length;
+            const hasSeats = chosenSeats.length > 0;
+            document.getElementById('confirmSeatBtn').disabled = !hasSeats;
+            document.getElementById('cancelSeatBtn').disabled = !hasSeats;
+        }
+
+        function confirmSeatSelection() {
+            if (chosenSeats.length === 0) return;
+            isSeatsConfirmed = true;
+            document.getElementById('seatContainer').classList.add('locked');
+            document.getElementById('passengerDetailsCard').classList.remove('form-section-disabled');
+            document.getElementById('seatStatusBadge').className = 'badge bg-success';
+            document.getElementById('seatStatusBadge').innerText = 'Seats Selected';
+            updateTripSummary();
+        }
+
+        function cancelSeatSelection() {
+            chosenSeats = [];
+            isSeatsConfirmed = false;
+            document.getElementById('seatContainer').classList.remove('locked');
+            document.getElementById('passengerDetailsCard').classList.add('form-section-disabled');
+            document.getElementById('seatStatusBadge').className = 'badge bg-warning text-dark';
+            document.getElementById('seatStatusBadge').innerText = 'Awaiting Selection';
+            renderSeats();
+            updateSeatControls();
+            updateTripSummary();
+        }
+
+        function updateTripSummary() {
+            document.getElementById('summaryRoute').innerText = `${selectedSchedule.origin} to ${selectedSchedule.dest}`;
+            document.getElementById('summaryDate').innerText = selectedTravelDate || '-';
+            const summarySeatBadge = document.getElementById('summarySeat');
+            const payBtn = document.getElementById('payBtn');
+            const fareDisplay = document.getElementById('summaryFare');
+
+            if (chosenSeats.length > 0 && isSeatsConfirmed) {
+                summarySeatBadge.innerText = chosenSeats.join(', ');
+                fareDisplay.innerText = (chosenSeats.length * selectedSchedule.fare).toLocaleString();
+                payBtn.disabled = false;
+            } else {
+                summarySeatBadge.innerText = 'None';
+                fareDisplay.innerText = '0';
+                payBtn.disabled = true;
+            }
+        }
+
+        function processPayment() {
+            const name = document.getElementById('passengerName').value;
+            const phone = document.getElementById('passengerPhone').value;
+
+            // DYNAMICALLY APPEND NEW BOOKINGS SPECIFIC TO THIS DATE ONLY
+            const bookedForDate = getBookedSeatsForDate(selectedSchedule, selectedTravelDate);
+            bookedForDate.push(...chosenSeats);
+
+            alert(`M-Pesa STK Push prompt initiated to ${phone} for ${name}.\nTravel Date: ${selectedTravelDate}\nTotal: KES ${(chosenSeats.length * selectedSchedule.fare).toLocaleString()}\n\nBooking Confirmed! ${chosenSeats.length} seat(s) reserved successfully.`);
+
+            // Reset booking flow back to search schedules step with updated counts for that date
+            cancelSeatSelection();
+            processSearch();
+        }
+
+        function goToStep(num) {
+            document.getElementById('bookingStep1').classList.add('d-none');
+            document.getElementById('bookingStep2').classList.add('d-none');
+            document.getElementById('bookingStep3').classList.add('d-none');
+            document.getElementById(`bookingStep${num}`).classList.remove('d-none');
+        }
+    </script>
+</body>
+</html>
