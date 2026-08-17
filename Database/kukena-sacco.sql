@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 11, 2026 at 05:48 PM
+-- Generation Time: Aug 17, 2026 at 08:34 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -24,102 +24,79 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `customer table`
+-- Table structure for table `accounts`
 --
 
-CREATE TABLE `customer table` (
-  `UserID` varchar(100) NOT NULL,
-  `Full name` varchar(100) DEFAULT NULL,
-  `Phone Number` int(15) DEFAULT NULL,
-  `Email` varchar(50) NOT NULL,
-  `Password` varchar(15) NOT NULL,
-  `Creasted at` timestamp NOT NULL DEFAULT current_timestamp()
+CREATE TABLE `accounts` (
+  `accounts_id` int(11) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `password_hash` varchar(200) NOT NULL,
+  `Creasted at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` enum('Active','Inactive','','') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `passenger booking`
+-- Table structure for table `customer`
 --
 
-CREATE TABLE `passenger booking` (
+CREATE TABLE `customer` (
+  `customer_id` int(11) NOT NULL,
+  `account_id` int(11) NOT NULL,
+  `national_id` varchar(20) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` enum('Active','Inactive','','') NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `driver`
+--
+
+CREATE TABLE `driver` (
+  `driver_id` int(11) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `license_number` varchar(50) NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` enum('Active','Inactive','','') NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment`
+--
+
+CREATE TABLE `payment` (
+  `payment_id` int(11) NOT NULL,
   `booking_id` int(11) NOT NULL,
-  `ticket_ref` int(11) NOT NULL,
-  `trip_id` int(11) NOT NULL,
-  `seat_number` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `staff accounts table`
---
-
-CREATE TABLE `staff accounts table` (
-  `staff_id` int(20) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `role` varchar(50) NOT NULL,
-  `default_terminal_id` int(11) NOT NULL,
-  `pin` varchar(30) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `terminals table`
---
-
-CREATE TABLE `terminals table` (
-  `terminal_id` int(10) NOT NULL,
-  `name` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `transactions log table`
---
-
-CREATE TABLE `transactions log table` (
-  `transaction_id` int(11) NOT NULL,
-  `reference_code` varchar(50) NOT NULL,
-  `booking_id` int(11) NOT NULL,
-  `payment_method` enum('Cash','MPesa-STK','Mpesa-Code','Mp-sa') NOT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `processed_by_staff_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `payment_method` enum('Mpesa','Cash','','') NOT NULL,
+  `transaction_code` varchar(100) NOT NULL,
+  `payment_date` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` enum('Completed','Pending','Failed','Refunded') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `trip schedules table`
+-- Table structure for table `vehicle`
 --
 
-CREATE TABLE `trip schedules table` (
-  `trip_id` int(11) NOT NULL,
-  `origin_terminal_id` int(11) NOT NULL,
-  `destination_terminal_id` int(11) NOT NULL,
+CREATE TABLE `vehicle` (
   `vehicle_id` int(11) NOT NULL,
-  `departure_time` time NOT NULL,
-  `travel_date` date NOT NULL,
-  `fare_amount` decimal(10,2) NOT NULL,
-  `status` enum('Open','Boarding','Ready','Dispatched','Cancelled') NOT NULL,
-  `created_by_staff_id` int(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `vehicles`
---
-
-CREATE TABLE `vehicles` (
-  `vehicle_id` int(10) NOT NULL,
-  `registration_number` varchar(30) NOT NULL,
+  `registration_number` varchar(20) NOT NULL,
   `capacity` int(11) NOT NULL,
-  `is_active` tinyint(1) NOT NULL
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` enum('Active','Inactive','','') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -127,46 +104,33 @@ CREATE TABLE `vehicles` (
 --
 
 --
--- Indexes for table `customer table`
+-- Indexes for table `accounts`
 --
-ALTER TABLE `customer table`
-  ADD PRIMARY KEY (`UserID`);
+ALTER TABLE `accounts`
+  ADD PRIMARY KEY (`accounts_id`);
 
 --
--- Indexes for table `passenger booking`
+-- Indexes for table `customer`
 --
-ALTER TABLE `passenger booking`
-  ADD PRIMARY KEY (`booking_id`),
-  ADD KEY `trip_id` (`trip_id`);
+ALTER TABLE `customer`
+  ADD PRIMARY KEY (`customer_id`);
 
 --
--- Indexes for table `staff accounts table`
+-- Indexes for table `driver`
 --
-ALTER TABLE `staff accounts table`
-  ADD PRIMARY KEY (`staff_id`);
+ALTER TABLE `driver`
+  ADD KEY `driver_id` (`driver_id`);
 
 --
--- Indexes for table `terminals table`
+-- Indexes for table `payment`
 --
-ALTER TABLE `terminals table`
-  ADD PRIMARY KEY (`terminal_id`);
+ALTER TABLE `payment`
+  ADD PRIMARY KEY (`payment_id`);
 
 --
--- Indexes for table `transactions log table`
+-- Indexes for table `vehicle`
 --
-ALTER TABLE `transactions log table`
-  ADD PRIMARY KEY (`transaction_id`);
-
---
--- Indexes for table `trip schedules table`
---
-ALTER TABLE `trip schedules table`
-  ADD PRIMARY KEY (`trip_id`);
-
---
--- Indexes for table `vehicles`
---
-ALTER TABLE `vehicles`
+ALTER TABLE `vehicle`
   ADD PRIMARY KEY (`vehicle_id`);
 
 --
@@ -174,22 +138,50 @@ ALTER TABLE `vehicles`
 --
 
 --
--- AUTO_INCREMENT for table `staff accounts table`
+-- AUTO_INCREMENT for table `accounts`
 --
-ALTER TABLE `staff accounts table`
-  MODIFY `staff_id` int(20) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `accounts`
+  MODIFY `accounts_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `transactions log table`
+-- AUTO_INCREMENT for table `customer`
 --
-ALTER TABLE `transactions log table`
-  MODIFY `transaction_id` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `customer`
+  MODIFY `customer_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `trip schedules table`
+-- AUTO_INCREMENT for table `payment`
 --
-ALTER TABLE `trip schedules table`
-  MODIFY `trip_id` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `payment`
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `vehicle`
+--
+ALTER TABLE `vehicle`
+  MODIFY `vehicle_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `accounts`
+--
+ALTER TABLE `accounts`
+  ADD CONSTRAINT `accounts_ibfk_1` FOREIGN KEY (`accounts_id`) REFERENCES `payment` (`payment_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `customer`
+--
+ALTER TABLE `customer`
+  ADD CONSTRAINT `customer_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `vehicle` (`vehicle_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `driver`
+--
+ALTER TABLE `driver`
+  ADD CONSTRAINT `driver_ibfk_1` FOREIGN KEY (`driver_id`) REFERENCES `vehicle` (`vehicle_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
