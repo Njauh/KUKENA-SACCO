@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 24, 2026 at 06:44 AM
+-- Generation Time: Aug 24, 2026 at 11:39 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -83,6 +83,22 @@ CREATE TABLE `payment` (
   `transaction_code` varchar(100) NOT NULL,
   `payment_date` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('Completed','Pending','Failed','Refunded') NOT NULL DEFAULT 'Pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `route`
+--
+
+CREATE TABLE `route` (
+  `route_id` int(11) NOT NULL,
+  `schedule_id` int(11) NOT NULL,
+  `vehicle_id` int(11) NOT NULL,
+  `origin` varchar(100) NOT NULL,
+  `destination` varchar(100) NOT NULL,
+  `fare` decimal(10,2) NOT NULL,
+  `status` enum('Active','Inactive','','') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -176,6 +192,13 @@ ALTER TABLE `payment`
   ADD UNIQUE KEY `unique_booking_payment` (`booking_id`);
 
 --
+-- Indexes for table `route`
+--
+ALTER TABLE `route`
+  ADD PRIMARY KEY (`route_id`),
+  ADD KEY `schedule_id` (`schedule_id`);
+
+--
 -- Indexes for table `schedule`
 --
 ALTER TABLE `schedule`
@@ -227,6 +250,12 @@ ALTER TABLE `payment`
   MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `route`
+--
+ALTER TABLE `route`
+  MODIFY `route_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `schedule`
 --
 ALTER TABLE `schedule`
@@ -266,6 +295,12 @@ ALTER TABLE `customer`
 --
 ALTER TABLE `payment`
   ADD CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`booking_id`) REFERENCES `booking` (`booking_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `route`
+--
+ALTER TABLE `route`
+  ADD CONSTRAINT `route_ibfk_1` FOREIGN KEY (`schedule_id`) REFERENCES `schedule` (`Schedule_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `schedule`
