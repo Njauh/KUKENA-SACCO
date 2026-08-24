@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 21, 2026 at 05:17 PM
+-- Generation Time: Aug 24, 2026 at 06:44 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -48,9 +48,10 @@ CREATE TABLE `customer` (
   `full_name` varchar(100) NOT NULL,
   `phone` varchar(20) NOT NULL,
   `email` varchar(100) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` enum('Active','Inactive','','') NOT NULL,
-  `staff_id` int(11) NOT NULL
+  `password_hash` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active',
+  `staff_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -64,20 +65,9 @@ CREATE TABLE `driver` (
   `full_name` varchar(100) NOT NULL,
   `license_number` varchar(50) NOT NULL,
   `phone` varchar(20) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` enum('Active','Inactive','','') NOT NULL
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `driver`
---
-
-INSERT INTO `driver` (`driver_id`, `full_name`, `license_number`, `phone`, `created_at`, `status`) VALUES
-(2, 'Peter Migwi', 'L001234', '0710500675', '2026-08-18 04:30:05', 'Active'),
-(1, 'Joel Njaaga', 'L001243', '0720500673', '2026-08-18 04:30:33', 'Active'),
-(3, 'Samwel Kariuki', 'L001200', '0710500687', '2026-08-18 04:30:58', 'Active'),
-(5, 'Paul Kamau', 'L011234', '0710500888', '2026-08-18 04:31:28', 'Active'),
-(4, 'Julie Akin', 'L101200', '0710500888', '2026-08-18 04:32:04', 'Active');
 
 -- --------------------------------------------------------
 
@@ -89,10 +79,10 @@ CREATE TABLE `payment` (
   `payment_id` int(11) NOT NULL,
   `booking_id` int(11) NOT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `payment_method` enum('Mpesa','Cash','','') NOT NULL,
+  `payment_method` enum('Mpesa','Cash') NOT NULL DEFAULT 'Mpesa',
   `transaction_code` varchar(100) NOT NULL,
-  `payment_date` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` enum('Completed','Pending','Failed','Refunded') NOT NULL
+  `payment_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Completed','Pending','Failed','Refunded') NOT NULL DEFAULT 'Pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -102,13 +92,14 @@ CREATE TABLE `payment` (
 --
 
 CREATE TABLE `schedule` (
-  `schedule_id` int(11) NOT NULL,
-  `route_id` int(11) NOT NULL,
+  `Schedule_id` int(11) NOT NULL,
+  `driver_id` int(11) NOT NULL,
   `vehicle_id` int(11) NOT NULL,
-  `departure_time` datetime NOT NULL,
-  `arrival_time` datetime NOT NULL,
-  `status` enum('Scheduled','Departed','Completed','Cancelled') NOT NULL,
-  `driver_id` int(11) NOT NULL
+  `fare` decimal(10,2) NOT NULL,
+  `travel_date` date NOT NULL,
+  `origin` varchar(100) NOT NULL,
+  `destination` varchar(100) NOT NULL,
+  `status` enum('Scheduled','Departed','Completed','Cancelled') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -123,9 +114,16 @@ CREATE TABLE `staff` (
   `email` varchar(100) NOT NULL,
   `phone` varchar(20) NOT NULL,
   `password_hash` varchar(200) NOT NULL,
-  `Created at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` enum('Active','Inactive','','') NOT NULL
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `staff`
+--
+
+INSERT INTO `staff` (`staff_id`, `full_name`, `email`, `phone`, `password_hash`, `created_at`, `status`) VALUES
+(1, 'System Administrator', 'admin@kukenasacco.co.ke', '0700000000', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC0W7eZ8eQ4l3Q7p5q7e', '2026-08-23 16:46:11', 'Active');
 
 -- --------------------------------------------------------
 
@@ -136,17 +134,10 @@ CREATE TABLE `staff` (
 CREATE TABLE `vehicle` (
   `vehicle_id` int(11) NOT NULL,
   `registration_number` varchar(20) NOT NULL,
-  `capacity` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `status` enum('Active','Inactive','','') NOT NULL
+  `capacity` int(11) NOT NULL DEFAULT 14,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `vehicle`
---
-
-INSERT INTO `vehicle` (`vehicle_id`, `registration_number`, `capacity`, `created_at`, `status`) VALUES
-(5, 'KCX 982Z', 14, '2026-08-18 04:25:53', 'Active');
 
 --
 -- Indexes for dumped tables
@@ -157,7 +148,7 @@ INSERT INTO `vehicle` (`vehicle_id`, `registration_number`, `capacity`, `created
 --
 ALTER TABLE `booking`
   ADD PRIMARY KEY (`booking_id`),
-  ADD KEY `schedule_id` (`schedule_id`),
+  ADD UNIQUE KEY `unique_seat` (`schedule_id`,`travel_date`,`seat_number`),
   ADD KEY `customer_id` (`customer_id`);
 
 --
@@ -165,26 +156,31 @@ ALTER TABLE `booking`
 --
 ALTER TABLE `customer`
   ADD PRIMARY KEY (`customer_id`),
-  ADD KEY `staff_id` (`staff_id`);
+  ADD UNIQUE KEY `national_id` (`national_id`),
+  ADD UNIQUE KEY `phone` (`phone`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `customer_ibfk_1` (`staff_id`);
 
 --
 -- Indexes for table `driver`
 --
 ALTER TABLE `driver`
-  ADD KEY `driver_id` (`driver_id`);
+  ADD PRIMARY KEY (`driver_id`),
+  ADD UNIQUE KEY `license_number` (`license_number`);
 
 --
 -- Indexes for table `payment`
 --
 ALTER TABLE `payment`
   ADD PRIMARY KEY (`payment_id`),
-  ADD KEY `booking_id` (`booking_id`);
+  ADD UNIQUE KEY `unique_booking_payment` (`booking_id`);
 
 --
 -- Indexes for table `schedule`
 --
 ALTER TABLE `schedule`
-  ADD PRIMARY KEY (`schedule_id`),
+  ADD PRIMARY KEY (`Schedule_id`),
+  ADD UNIQUE KEY `unique_route` (`origin`,`destination`),
   ADD KEY `vehicle_id` (`vehicle_id`),
   ADD KEY `driver_id` (`driver_id`);
 
@@ -192,13 +188,15 @@ ALTER TABLE `schedule`
 -- Indexes for table `staff`
 --
 ALTER TABLE `staff`
-  ADD PRIMARY KEY (`staff_id`);
+  ADD PRIMARY KEY (`staff_id`),
+  ADD UNIQUE KEY `email` (`email`);
 
 --
 -- Indexes for table `vehicle`
 --
 ALTER TABLE `vehicle`
-  ADD PRIMARY KEY (`vehicle_id`);
+  ADD PRIMARY KEY (`vehicle_id`),
+  ADD UNIQUE KEY `registration_number` (`registration_number`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -214,31 +212,37 @@ ALTER TABLE `booking`
 -- AUTO_INCREMENT for table `customer`
 --
 ALTER TABLE `customer`
-  MODIFY `customer_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `customer_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `driver`
+--
+ALTER TABLE `driver`
+  MODIFY `driver_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `payment`
 --
 ALTER TABLE `payment`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `schedule`
 --
 ALTER TABLE `schedule`
-  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `Schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `staff`
 --
 ALTER TABLE `staff`
-  MODIFY `staff_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `staff_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `vehicle`
 --
 ALTER TABLE `vehicle`
-  MODIFY `vehicle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `vehicle_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
@@ -248,8 +252,8 @@ ALTER TABLE `vehicle`
 -- Constraints for table `booking`
 --
 ALTER TABLE `booking`
-  ADD CONSTRAINT `booking_ibfk_1` FOREIGN KEY (`schedule_id`) REFERENCES `schedule` (`schedule_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `booking_ibfk_2` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `booking_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `booking_ibfk_2` FOREIGN KEY (`schedule_id`) REFERENCES `schedule` (`schedule_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `customer`
@@ -269,12 +273,6 @@ ALTER TABLE `payment`
 ALTER TABLE `schedule`
   ADD CONSTRAINT `schedule_ibfk_1` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`vehicle_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `schedule_ibfk_2` FOREIGN KEY (`driver_id`) REFERENCES `driver` (`driver_id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `staff`
---
-ALTER TABLE `staff`
-  ADD CONSTRAINT `staff_ibfk_1` FOREIGN KEY (`staff_id`) REFERENCES `customer` (`customer_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
